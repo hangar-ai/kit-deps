@@ -1,0 +1,10 @@
+{
+  "description": "Lists the vulnerable and out-of-date packages of the project from its lockfile, when you ask, and hands any of them to an agent. Agents read the last audit instead of running it again.",
+  "topics": [
+    "hangar-kit",
+    "hangar",
+    "claude-code",
+    "dependencies",
+    "security"
+  ]
+}
