@@ -1,0 +1,23 @@
+[package]
+name = "kit-deps-tab"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "The Dependencies tab of the deps kit, in Rust, built to WebAssembly for Hangar"
+
+# A cdylib is the module Hangar runs (tabs/deps.wasm); the rlib is what
+# `cargo test` links, to run the tab on the host with the SDK's test harness.
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Until a release tag holds the SDK, its branch; Cargo.lock pins the commit.
+hangar-kit-sdk = { git = "https://github.com/hangar-ai/hangar", branch = "feat/native-rust" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+codegen-units = 1
