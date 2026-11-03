@@ -24,6 +24,7 @@
       "id": "deps",
       "title": "Dépendances",
       "entry": "tabs/deps/index.html",
+      "native": "tabs/deps.wasm",
       "icon": "icon.svg",
       "permissions": ["command:audit", "panes.read", "panes.send", "data.read", "data.write"]
     }

@@ -11,7 +11,7 @@ const read = (...parts) => fs.readFileSync(path.join(KIT, ...parts), "utf8");
 
 function allFiles(dir = KIT, found = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if ([".git", ".hangar-ui", "node_modules"].includes(entry.name)) continue;
+    if ([".git", ".hangar-ui", "node_modules", "target"].includes(entry.name)) continue; // target: native/'s build folder
     if (entry.isDirectory()) allFiles(path.join(dir, entry.name), found);
     else found.push(path.join(dir, entry.name));
   }
@@ -62,6 +62,28 @@ test("the tab: « Dépendances », and exactly the five permissions it needs", (
   assert.deepEqual([...tab.permissions].sort(), ["command:audit", "data.read", "data.write", "panes.read", "panes.send"]);
   assert.ok(fs.existsSync(path.join(KIT, tab.entry)));
   assert.ok(fs.existsSync(path.join(KIT, tab.icon)));
+});
+
+test("the tab keeps its page and names its native module beside it", () => {
+  // Schema 1 and an HTML entry: a Hangar that does not know "native" opens the page.
+  assert.equal(manifest.schema, 1);
+  const [tab] = manifest.tabs;
+  assert.match(tab.entry, /\.html$/);
+  assert.equal(tab.native, "tabs/deps.wasm");
+  assert.match(tab.native, /\.wasm$/);
+  assert.ok(!path.isAbsolute(tab.native) && !tab.native.split(/[\\/]/).some((part) => part === ".." || part.startsWith(".")), "inside the kit, not hidden");
+  const file = path.resolve(KIT, tab.native);
+  assert.ok(file.startsWith(KIT + path.sep));
+  assert.ok(fs.existsSync(file), "the module is committed: Hangar never builds one");
+  assert.ok(fs.statSync(file).size < 64 * 1024 * 1024);
+});
+
+test("the module is WebAssembly for Hangar: its exports, and no WASI", () => {
+  const bytes = fs.readFileSync(path.join(KIT, manifest.tabs[0].native));
+  assert.deepEqual([...bytes.subarray(0, 8)], [0, 0x61, 0x73, 0x6d, 1, 0, 0, 0]);
+  const text = bytes.toString("latin1");
+  for (const name of ["memory", "hangar_abi_version", "hangar_alloc", "hangar_init", "hangar_update", "hangar_view"]) assert.ok(text.includes(name), `exports ${name}`);
+  assert.ok(text.includes("hangar") && !/wasi_snapshot_preview1|__wbindgen/.test(text), "built for wasm32-unknown-unknown: no WASI, no wasm-bindgen");
 });
 
 test("the page loads Hangar UI and its own scripts, and nothing from elsewhere", () => {
