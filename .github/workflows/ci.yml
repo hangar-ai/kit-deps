@@ -12,3 +12,27 @@ permissions:
 jobs:
   kit-check:
     uses: hangar-ai/.github/.github/workflows/kit-check.yml@v1
+
+  # The native tab (native/): its tests on the host, and the module the repository holds
+  # against a fresh build of the source, byte for byte.
+  native:
+    name: Native tab (Rust, WebAssembly)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: native-${{ runner.os }}-${{ hashFiles('native/Cargo.lock', 'native/rust-toolchain.toml') }}
+      - name: Toolchain native/rust-toolchain.toml names
+        working-directory: native
+        run: rustup toolchain install
+      - name: Tests
+        run: cargo test --manifest-path native/Cargo.toml --locked
+      - name: tabs/deps.wasm is what native/ builds
+        run: scripts/build-native.sh --check

@@ -74,23 +74,67 @@ declares, else pnpm, yarn, npm in that order. A project with a lockfile of sever
 - Yarn 2 and later have no outdated command; the tab says so.
 - Poetry, uv, Pipfile and Bun lockfiles are not read.
 
+## The native tab
+
+The tab ships twice, and does the same either way:
+
+- `tabs/deps/` is the page, in HTML, that Hangar 1.x opens;
+- `tabs/deps.wasm` is the same tab written in Rust (`native/`) and built to WebAssembly: what
+  the native Hangar opens, drawn with Hangar's own widgets in your theme, with no browser engine.
+
+The manifest stays at `"schema": 1` with the page as the tab's `entry`, and names the module in
+`native`. Hangar 1.x ignores that field and opens the page; the native Hangar opens the module,
+and the page only when the module cannot be loaded (the tab's bar says so). Both make the same
+calls under the same five permissions, and the plugin (the command, the skill) is shared.
+
+What the native tab does differently, and what it cannot do:
+
+- **The last audit comes back.** It reads `last.json` when it opens, and what it writes there is
+  the script's own document (`schema`, `counts` and all). The page keeps the result without its
+  `schema`, which its own check then refuses: after a run, the page starts empty again.
+- **Text cannot be selected with the pointer** (Hangar's widgets do not select). The command that
+  installs a missing tool has a copy button; an advisory's id and a version do not, but they are
+  in the brief a finding is handed over with.
+- **No accessibility roles.** Hangar's widgets have no accessibility tree yet: `aria-label`s and
+  `role="alert"` have no equivalent, and a glyph's name is its tooltip.
+- **No client-side timeout.** Only the command's own limit (120 seconds) ends a run.
+- **Long lists are shown 50 rows at a time**, then 100 more on each press of « Show N more »,
+  where the page draws up to 500 rows at once, so that a view stays small.
+- **The clock** of « Last run 5 min ago » only runs while the tab is in front.
+
 ## Tests and fixtures
 
-`node --test kits/deps/`. The npm and pnpm outputs in `test/fixtures/` are recordings
-(npm 11.6, pnpm 10.28); the yarn, cargo and pip ones are written from each tool's documented
-output, because those tools were not installed where the kit was made. Run them against your
-own tool and tell us if a field moved.
+`node --test` runs the tests of the page, the script, the manifest and the module's file, with
+Node alone. `cargo test --manifest-path native/Cargo.toml` runs the native tab's, on the host,
+with the SDK's test harness: the same cases as the page's (`native/tests/tab.rs`), the logic's
+(`logic.rs`), the words (`strings.rs`), and the tab against what the script really prints
+(`recorded.rs`, from `native/tests/fixtures/`, which `test/native-fixtures.test.js` keeps equal to
+the script's output; `UPDATE_NATIVE_FIXTURES=1 node --test` writes them again).
+
+The npm and pnpm outputs in `test/fixtures/` are recordings (npm 11.6, pnpm 10.28); the yarn,
+cargo and pip ones are written from each tool's documented output, because those tools were not
+installed where the kit was made. Run them against your own tool and tell us if a field moved.
 
 ## Get it
 
 Link `kits/deps` from Hangar, or clone
 <https://github.com/hangar-ai/kit-deps>. Needs Hangar 1.9.0 or later and
-Node.js on the PATH.
+Node.js on the PATH. Nothing is built on your machine: the native Hangar runs the
+`tabs/deps.wasm` the repository holds.
 
 ## This repository
 
-`node --test` runs the tests, with Node alone. These tests need nothing from Hangar's repository.
+`node --test` runs the tests of everything but the native tab, with Node alone. These tests need
+nothing from Hangar's repository.
 
-CI calls [kit-check](https://github.com/hangar-ai/.github/blob/main/.github/workflows/kit-check.yml). A release is
+**Building the module.** `scripts/build-native.sh` builds `native/` for `wasm32-unknown-unknown`
+and puts the result at `tabs/deps.wasm`, which is committed with the source that made it: change
+`native/`, rebuild, and commit both. It needs [rustup](https://rustup.rs); the compiler is the
+one `native/rust-toolchain.toml` names, so the same source gives the same bytes on any machine
+(paths of the machine are left out of the module). `scripts/build-native.sh --check` builds it
+and fails when the committed module is not what the source builds, which is what CI does.
+
+CI calls [kit-check](https://github.com/hangar-ai/.github/blob/main/.github/workflows/kit-check.yml),
+then runs the native tab's tests and that check. A release is
 a tag, `v` and the manifest's version, and it reaches Hangar's gallery once
 [the catalog](https://github.com/hangar-ai/catalog) is updated and reviewed.
