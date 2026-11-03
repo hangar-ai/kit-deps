@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   kit-check:
-    uses: hangar-ai/.github/.github/workflows/kit-check.yml@v1
+    uses: hangar-ai/.github/.github/workflows/kit-check.yml@rust-rewrite
 
   # The native tab (native/): its tests on the host, and the module the repository holds
   # against a fresh build of the source, byte for byte.
