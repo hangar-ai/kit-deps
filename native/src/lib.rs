@@ -120,6 +120,8 @@ pub enum Message {
     Saved(Result<Done, KitError>),
     Choose(String),
     ShowMore(String),
+    /// The command that installs a missing tool, to the clipboard.
+    Copy(String),
     HandOver(FindingKind, String),
     Sent {
         key: String,
@@ -357,6 +359,12 @@ impl Kit for Deps {
             // It shows now; the next opening starts without it.
             Message::Saved(Err(_)) => cx.toast(Notice::Warning, self.t.t("notSaved")),
             Message::Choose(agent) => self.choice = Some(agent),
+            // A page's text can be selected; a native one cannot, so the one
+            // thing a person copies, the command to run, has a button.
+            Message::Copy(command) => {
+                cx.copy(command);
+                cx.toast(Notice::Success, self.t.t("copied"));
+            }
             Message::ShowMore(list) => *self.more.entry(list).or_insert(0) += SHOW_MORE_STEP,
             Message::HandOver(kind, key) => {
                 let Some(agent) = self.target() else { return };

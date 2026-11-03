@@ -214,11 +214,20 @@ impl Deps {
         let mut out: Vec<Element<Message>> = Vec::new();
         for manager in &result.managers {
             for tool in &manager.missing {
-                let line = match logic::install_command(tool) {
-                    Some(command) => t.tv("missingTool", &[("tool", tool), ("command", command)]),
-                    None => t.tv("missingToolPlain", &[("tool", tool)]),
-                };
-                out.push(banner(Notice::Warning, line).into());
+                out.push(match logic::install_command(tool) {
+                    Some(command) => banner(
+                        Notice::Warning,
+                        t.tv("missingTool", &[("tool", tool), ("command", command)]),
+                    )
+                    .action(
+                        icon_button(Icon::Copy, t.t("copyCommand"))
+                            .on_press(Message::Copy(command.to_owned())),
+                    )
+                    .into(),
+                    None => {
+                        banner(Notice::Warning, t.tv("missingToolPlain", &[("tool", tool)])).into()
+                    }
+                });
             }
             for error in &manager.errors {
                 let step = t.t(&format!("step.{}", error.step.as_str()));

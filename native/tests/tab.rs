@@ -695,6 +695,31 @@ fn tool_missing_says_which_tool_and_how_to_get_it() {
 }
 
 #[test]
+fn the_command_that_gets_a_missing_tool_is_one_press_from_the_clipboard() {
+    let result = document(
+        vec![manager(json!({
+            "manager": "cargo", "lockfile": "Cargo.lock", "status": "tool-missing",
+            "steps": { "audit": "missing", "outdated": "missing" }, "missing": ["cargo-audit", "pip-audit-not-listed"]
+        }))],
+        json!({ "status": "tool-missing" }),
+    );
+    let mut session = showing(result);
+    // A tool that has no command to give has no button; the other has one.
+    let copies: Vec<_> = session
+        .buttons()
+        .into_iter()
+        .filter(|b| b.label == "Copy the command")
+        .collect();
+    assert_eq!(copies.len(), 1);
+    session.press("Copy the command");
+    assert_eq!(
+        session.fake.calls_to("ui.copy"),
+        vec![json!({ "text": "cargo install cargo-audit" })]
+    );
+    assert_eq!(session.fake.calls_to("ui.toast")[0]["message"], "Copied");
+}
+
+#[test]
 fn half_an_audit_the_part_that_failed_is_announced_and_the_other_part_still_shown() {
     let result = document(
         vec![manager(json!({
