@@ -4,7 +4,6 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { KIT } = require("./helpers");
-const logic = require("../tabs/deps/logic");
 
 const manifest = JSON.parse(fs.readFileSync(path.join(KIT, "hangar-kit.json"), "utf8"));
 const read = (...parts) => fs.readFileSync(path.join(KIT, ...parts), "utf8");
@@ -19,12 +18,12 @@ function allFiles(dir = KIT, found = []) {
 }
 
 test("the manifest's own fields", () => {
-  assert.equal(manifest.schema, 1);
+  assert.equal(manifest.schema, 2);
   assert.equal(manifest.id, "deps");
   assert.match(manifest.version, /^\d+\.\d+\.\d+$/);
   assert.ok(manifest.name.trim() && manifest.description.trim());
   assert.equal(manifest.homepage, "https://github.com/hangar-ai/kit-deps");
-  assert.equal(manifest.hangar, ">=1.9.0");
+  assert.equal(manifest.hangar, ">=2.0.0");
   assert.ok(fs.existsSync(path.join(KIT, manifest.icon)));
   assert.equal(manifest.setup, undefined);
 });
@@ -64,59 +63,26 @@ test("the tab: « Dépendances », and exactly the five permissions it needs", (
   assert.ok(fs.existsSync(path.join(KIT, tab.icon)));
 });
 
-test("the tab keeps its page and names its native module beside it", () => {
-  // Schema 1 and an HTML entry: a Hangar that does not know "native" opens the page.
-  assert.equal(manifest.schema, 1);
+test("the tab is native: schema 2, the module as its entry, no page", () => {
+  // An `entry` ending in .wasm needs schema 2 (docs/native/kits-native.md).
+  assert.equal(manifest.schema, 2);
   const [tab] = manifest.tabs;
-  assert.match(tab.entry, /\.html$/);
-  assert.equal(tab.native, "tabs/deps.wasm");
-  assert.match(tab.native, /\.wasm$/);
-  assert.ok(!path.isAbsolute(tab.native) && !tab.native.split(/[\\/]/).some((part) => part === ".." || part.startsWith(".")), "inside the kit, not hidden");
-  const file = path.resolve(KIT, tab.native);
+  assert.equal(tab.entry, "tabs/deps.wasm");
+  assert.equal(tab.native, undefined);
+  assert.ok(!path.isAbsolute(tab.entry) && !tab.entry.split(/[\\/]/).some((part) => part === ".." || part.startsWith(".")), "inside the kit, not hidden");
+  const file = path.resolve(KIT, tab.entry);
   assert.ok(file.startsWith(KIT + path.sep));
   assert.ok(fs.existsSync(file), "the module is committed: Hangar never builds one");
   assert.ok(fs.statSync(file).size < 64 * 1024 * 1024);
+  assert.equal(fs.existsSync(path.join(KIT, "tabs", "deps")), false, "no HTML page is left");
 });
 
 test("the module is WebAssembly for Hangar: its exports, and no WASI", () => {
-  const bytes = fs.readFileSync(path.join(KIT, manifest.tabs[0].native));
+  const bytes = fs.readFileSync(path.join(KIT, manifest.tabs[0].entry));
   assert.deepEqual([...bytes.subarray(0, 8)], [0, 0x61, 0x73, 0x6d, 1, 0, 0, 0]);
   const text = bytes.toString("latin1");
   for (const name of ["memory", "hangar_abi_version", "hangar_alloc", "hangar_init", "hangar_update", "hangar_view"]) assert.ok(text.includes(name), `exports ${name}`);
   assert.ok(text.includes("hangar") && !/wasi_snapshot_preview1|__wbindgen/.test(text), "built for wasm32-unknown-unknown: no WASI, no wasm-bindgen");
-});
-
-test("the page loads Hangar UI and its own scripts, and nothing from elsewhere", () => {
-  const html = read("tabs", "deps", "index.html");
-  assert.match(html, /href="\/_hangar\/kit\.css"/);
-  assert.match(html, /src="\/_hangar\/kit\.js"/);
-  assert.match(html, /src="\/_hangar\/kit-ui\.js"/);
-  for (const src of html.match(/(?:src|href)="[^"]+"/g)) assert.match(src, /="(\/_hangar\/|[a-z-]+\.js")/, src);
-  assert.doesNotMatch(html, /https?:\/\//);
-  assert.doesNotMatch(html, /<style/);
-});
-
-test("no colour of its own in the tab, and no markup built from data", () => {
-  for (const name of ["logic.js", "controller.js", "view.js", "app.js", "index.html"]) {
-    const source = read("tabs", "deps", name);
-    assert.doesNotMatch(source, /#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(/, name);
-    assert.doesNotMatch(source, /innerHTML|insertAdjacentHTML|document\.write|eval\(/, name);
-    assert.doesNotMatch(source, /fetch\(|XMLHttpRequest|WebSocket/, `${name} has no network of its own`);
-  }
-});
-
-test("English and French hold the same keys, and French has its accents", () => {
-  const { en, fr } = logic.STRINGS;
-  const keys = (table) => new Set(Object.keys(table).map((key) => key.replace(/_(one|other)$/, "")));
-  assert.deepEqual([...keys(fr)].sort(), [...keys(en)].sort());
-  assert.equal(fr.tab, "Dépendances");
-  for (const key of Object.keys(en)) {
-    const placeholders = (table) => (table[key].match(/\{\w+\}/g) || []).sort().join();
-    assert.equal(placeholders(fr), placeholders(en), key);
-  }
-  assert.match(fr.deniedText, /Réglages › Kits/);
-  assert.match(fr.handOver, /^Confier à un agent$/);
-  assert.doesNotMatch(Object.values(fr).join(" "), /\b(Reglages|echec|Dependances|a un agent)\b/);
 });
 
 test("nothing personal anywhere in the kit", () => {

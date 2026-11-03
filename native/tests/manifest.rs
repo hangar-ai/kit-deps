@@ -33,16 +33,17 @@ fn the_tests_grant_what_the_manifest_declares() {
 }
 
 #[test]
-fn the_tab_keeps_its_page_and_names_its_module() {
+fn the_tab_is_native_under_schema_2() {
     let manifest = manifest();
     let tab = &manifest["tabs"][0];
-    assert_eq!(manifest["schema"], 1);
-    assert_eq!(tab["entry"], "tabs/deps/index.html");
-    assert_eq!(tab["native"], "tabs/deps.wasm");
-    let module = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join(tab["native"].as_str().unwrap());
-    let bytes = std::fs::read(module).expect("the module is committed");
+    assert_eq!(manifest["schema"], 2);
+    assert_eq!(manifest["hangar"], ">=2.0.0");
+    assert_eq!(tab["entry"], "tabs/deps.wasm");
+    assert!(tab.get("native").is_none(), "the entry is the module itself");
+    let kit = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    assert!(!kit.join("tabs/deps").exists(), "no HTML page is left");
+    let bytes = std::fs::read(kit.join(tab["entry"].as_str().unwrap()))
+        .expect("the module is committed");
     assert_eq!(bytes[..4], *b"\0asm");
 }
 

@@ -1,6 +1,6 @@
 #!/bin/sh
 # Builds the Dependencies tab to WebAssembly and puts the module where the
-# manifest's "native" says: tabs/deps.wasm. Hangar runs the module the kit
+# manifest's tab "entry" says: tabs/deps.wasm. Hangar runs the module the kit
 # ships and never builds one, so commit it with the source that made it.
 #
 #   scripts/build-native.sh          build it

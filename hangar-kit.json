@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "id": "deps",
   "name": "Dependencies",
   "version": "0.1.0",
@@ -7,7 +7,7 @@
   "author": "Hangar",
   "homepage": "https://github.com/hangar-ai/kit-deps",
   "icon": "icon.svg",
-  "hangar": ">=1.9.0",
+  "hangar": ">=2.0.0",
   "gallery": {
     "permissionsSummary": "Runs one declared command, a Node script that calls your package manager's read-only audit and outdated commands (pnpm, npm, yarn, cargo, pip) when you click; keeps the last result in the kit's own data folder; and sends a package to an agent of the workspace only when you click.",
     "tags": ["dependencies", "security", "tab"]
@@ -23,8 +23,7 @@
     {
       "id": "deps",
       "title": "Dépendances",
-      "entry": "tabs/deps/index.html",
-      "native": "tabs/deps.wasm",
+      "entry": "tabs/deps.wasm",
       "icon": "icon.svg",
       "permissions": ["command:audit", "panes.read", "panes.send", "data.read", "data.write"]
     }
