@@ -2,7 +2,7 @@
   "schema": 2,
   "id": "deps",
   "name": "Dependencies",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Lists the vulnerable and out-of-date packages of the project from its lockfile, when you ask, and hands any of them to an agent. Agents read the last audit instead of running it again.",
   "author": "Hangar",
   "homepage": "https://github.com/hangar-ai/kit-deps",
